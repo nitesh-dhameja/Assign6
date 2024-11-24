@@ -28,7 +28,7 @@ ENV/
 # Project specific
 data/
 logs/
-model_*.pth
+models/
 .DS_Store
 
 # IDE specific

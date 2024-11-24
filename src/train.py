@@ -28,6 +28,11 @@ def train_model():
     setup_logging()
     logger = logging.getLogger(__name__)
     
+    # Create models directory if it doesn't exist
+    if not os.path.exists('models'):
+        os.makedirs('models')
+        logger.info("Created models directory")
+    
     # Force CPU usage if running on GitHub Actions
     if os.getenv('GITHUB_ACTIONS'):
         device = torch.device('cpu')
@@ -76,6 +81,7 @@ def train_model():
     
     # Training loop
     best_accuracy = 0
+    best_model_path = None
     for epoch in range(20):
         model.train()
         running_loss = 0.0
@@ -141,10 +147,11 @@ def train_model():
         
         if accuracy > best_accuracy:
             best_accuracy = accuracy
-            # Save model with timestamp
+            # Save model with timestamp in models directory
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            model_path = f'model_acc{accuracy:.2f}_params{param_count}_{timestamp}.pth'
+            model_path = os.path.join('models', f'model_acc{accuracy:.2f}_params{param_count}_{timestamp}.pth')
             torch.save(model.state_dict(), model_path)
+            best_model_path = model_path
             logger.info(f'New best model saved: {model_path}')
     
     # Enhanced final summary
@@ -152,7 +159,9 @@ def train_model():
     logger.info("Training Summary:")
     logger.info(f"Total Parameters: {param_count:,}")
     logger.info(f"Best Test Accuracy: {best_accuracy:.2f}%")
-    logger.info(f"Final Model Size: {os.path.getsize(model_path)/1024:.2f} KB")
+    if best_model_path:
+        logger.info(f"Best Model Path: {best_model_path}")
+        logger.info(f"Model Size: {os.path.getsize(best_model_path)/1024:.2f} KB")
     logger.info("="*50)
     
     return best_accuracy
