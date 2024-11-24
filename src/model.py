@@ -6,27 +6,26 @@ class MNIST_CNN(nn.Module):
     def __init__(self):
         super(MNIST_CNN, self).__init__()
         
-        # First conv block
-        self.conv1 = nn.Conv2d(1, 8, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(8)
+        # First conv block - reduced initial channels
+        self.conv1 = nn.Conv2d(1, 4, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(4)
         self.dropout1 = nn.Dropout(0.1)
         
-        # Second conv block
-        self.conv2 = nn.Conv2d(8, 16, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(16)
+        # Second conv block - keep channels small
+        self.conv2 = nn.Conv2d(4, 8, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(8)
         self.dropout2 = nn.Dropout(0.1)
         
-        # Transition layer
-        self.conv1x1 = nn.Conv2d(16, 8, kernel_size=1)
-        self.maxpool = nn.MaxPool2d(2, 2)
+        # Transition layer with more aggressive pooling
+        self.conv1x1 = nn.Conv2d(8, 4, kernel_size=1)
+        self.maxpool = nn.MaxPool2d(4, 4)  # More aggressive pooling
         
-        # Third conv block
-        self.conv3 = nn.Conv2d(8, 16, kernel_size=3, padding=1)
+        # Third conv block - limited channels
+        self.conv3 = nn.Conv2d(4, 8, kernel_size=3, padding=1)
         
-        # Calculate the size after convolutions and pooling
-        # Input: 28x28 -> After maxpool: 14x14 -> Final conv: 14x14
-        # Final channels: 16, size: 14x14
-        self.fc1 = nn.Linear(16 * 14 * 14, 32)  # Changed from 7x7 to 14x14
+        # Fully connected layers with reduced dimensions
+        # Input is now 7x7 due to more aggressive pooling
+        self.fc1 = nn.Linear(8 * 7 * 7, 32)
         self.fc2 = nn.Linear(32, 10)
 
     def forward(self, x):
@@ -46,14 +45,14 @@ class MNIST_CNN(nn.Module):
         
         # Transition layer
         x = self.conv1x1(x)  # 28x28 -> 28x28
-        x = self.maxpool(x)  # 28x28 -> 14x14
+        x = self.maxpool(x)  # 28x28 -> 7x7 (using stride 4)
         
         # Third block
-        x = self.conv3(x)  # 14x14 -> 14x14
+        x = self.conv3(x)  # 7x7 -> 7x7
         x = F.relu(x)
         
         # Flatten and FC layers
-        x = x.view(batch_size, 16 * 14 * 14)  # Updated dimensions
+        x = x.view(batch_size, 8 * 7 * 7)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x 
