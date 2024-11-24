@@ -28,8 +28,12 @@ def train_model():
     setup_logging()
     logger = logging.getLogger(__name__)
     
-    # Set device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Force CPU usage if running on GitHub Actions
+    if os.getenv('GITHUB_ACTIONS'):
+        device = torch.device('cpu')
+        logger.info("Running on GitHub Actions - forcing CPU usage")
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
     
     # Data transformations
@@ -43,14 +47,27 @@ def train_model():
     train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST('./data', train=False, transform=transform)
     
+    # Adjust workers based on environment
+    num_workers = 0 if os.getenv('GITHUB_ACTIONS') else 2
+    
     batch_size = 64
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, 
+        batch_size=batch_size, 
+        shuffle=True,
+        num_workers=num_workers
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset, 
+        batch_size=batch_size,  # Use same batch size as training
+        shuffle=False,
+        num_workers=num_workers
+    )
     logger.info(f"Dataset loaded. Training samples: {len(train_dataset)}, Test samples: {len(test_dataset)}")
     
     # Initialize model, optimizer, and loss function
     model = MNIST_CNN().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)  # Added momentum for better training
     criterion = nn.CrossEntropyLoss()
     
     param_count = count_parameters(model)
@@ -100,13 +117,19 @@ def train_model():
         test_loss = 0.0
         
         with torch.no_grad():
-            for data, target in tqdm(test_loader, desc='Evaluating'):
+            test_pbar = tqdm(test_loader, desc='Evaluating')
+            for data, target in test_pbar:
                 data, target = data.to(device), target.to(device)
                 output = model(data)
                 test_loss += criterion(output, target).item()
                 pred = output.argmax(dim=1)
                 correct += pred.eq(target).sum().item()
                 total += target.size(0)
+                
+                # Update test progress bar
+                test_pbar.set_postfix({
+                    'test_acc': f'{100.*correct/total:.2f}%'
+                })
         
         test_loss /= len(test_loader)
         accuracy = 100. * correct / total

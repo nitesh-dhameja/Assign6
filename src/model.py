@@ -23,33 +23,37 @@ class MNIST_CNN(nn.Module):
         # Third conv block
         self.conv3 = nn.Conv2d(8, 16, kernel_size=3, padding=1)
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(16 * 7 * 7, 32)
+        # Calculate the size after convolutions and pooling
+        # Input: 28x28 -> After maxpool: 14x14 -> Final conv: 14x14
+        # Final channels: 16, size: 14x14
+        self.fc1 = nn.Linear(16 * 14 * 14, 32)  # Changed from 7x7 to 14x14
         self.fc2 = nn.Linear(32, 10)
 
     def forward(self, x):
+        batch_size = x.size(0)
+        
         # First block
-        x = self.conv1(x)
+        x = self.conv1(x)  # 28x28 -> 28x28
         x = self.bn1(x)
         x = F.relu(x)
         x = self.dropout1(x)
         
         # Second block
-        x = self.conv2(x)
+        x = self.conv2(x)  # 28x28 -> 28x28
         x = self.bn2(x)
         x = F.relu(x)
         x = self.dropout2(x)
         
         # Transition layer
-        x = self.conv1x1(x)
-        x = self.maxpool(x)
+        x = self.conv1x1(x)  # 28x28 -> 28x28
+        x = self.maxpool(x)  # 28x28 -> 14x14
         
         # Third block
-        x = self.conv3(x)
+        x = self.conv3(x)  # 14x14 -> 14x14
         x = F.relu(x)
         
         # Flatten and FC layers
-        x = x.view(-1, 16 * 7 * 7)
+        x = x.view(batch_size, 16 * 14 * 14)  # Updated dimensions
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x 
