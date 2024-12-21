@@ -43,8 +43,10 @@ def train_model():
     
     # Data transformations
     transform = transforms.Compose([
+        transforms.RandomRotation(10),  # Rotate images randomly by ±10 degrees
+        transforms.RandomAffine(0, translate=(0.1, 0.1)),  # Random translation
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        transforms.Normalize((0.5,), (0.5,))
     ])
     
     # Load MNIST dataset
@@ -52,10 +54,14 @@ def train_model():
     train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST('./data', train=False, transform=transform)
     
+    # Log the number of samples in the datasets
+    logger.info(f"Number of training samples: {len(train_dataset)}")
+    logger.info(f"Number of testing samples: {len(test_dataset)}")
+    
     # Adjust workers based on environment
     num_workers = 0 if os.getenv('GITHUB_ACTIONS') else 2
     
-    batch_size = 64
+    batch_size = 32
     train_loader = torch.utils.data.DataLoader(
         train_dataset, 
         batch_size=batch_size, 
@@ -72,7 +78,7 @@ def train_model():
     
     # Initialize model, optimizer, and loss function
     model = MNIST_CNN().to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)  # Added momentum for better training
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
     criterion = nn.CrossEntropyLoss()
     
     param_count = count_parameters(model)
@@ -122,6 +128,7 @@ def train_model():
         total = 0
         test_loss = 0.0
         
+        logger.info("Starting evaluation...")
         with torch.no_grad():
             test_pbar = tqdm(test_loader, desc='Evaluating')
             for data, target in test_pbar:
