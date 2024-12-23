@@ -77,8 +77,8 @@ def train_model():
     
     # Initialize model, optimizer, and loss function
     model = MNIST_CNN().to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.001,momentum=0.9)
-    #criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    criterion = nn.CrossEntropyLoss()
     
     param_count = count_parameters(model)
     logger.info(f"Model initialized with {param_count} parameters")
@@ -99,7 +99,7 @@ def train_model():
             data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = model(data)
-            loss = output, target
+            loss = criterion(output, target)
             loss.backward()
             optimizer.step()
             
@@ -133,7 +133,7 @@ def train_model():
             for data, target in test_pbar:
                 data, target = data.to(device), target.to(device)
                 output = model(data)
-                test_loss += (output, target).item()
+                test_loss += criterion(output, target).item()
                 pred = output.argmax(dim=1)
                 correct += pred.eq(target).sum().item()
                 total += target.size(0)
