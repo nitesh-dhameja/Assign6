@@ -8,6 +8,7 @@ import os
 import logging
 from tqdm import tqdm
 from torchsummary import summary 
+from torch.optim import StepLR
 
 def setup_logging():
     # Create logs directory if it doesn't exist
@@ -83,6 +84,7 @@ def train_model():
     model = MNIST_CNN().to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = nn.CrossEntropyLoss()
+    scheduler = StepLR(optimizer, step_size=6, gamma=0.1)
     
     param_count = count_parameters(model)
     logger.info(f"Model initialized with {param_count} parameters")
@@ -126,6 +128,7 @@ def train_model():
         epoch_loss = running_loss / len(train_loader)
         train_accuracy = 100. * correct_train / total_train
         
+        scheduler.step()
         # Evaluation
         model.eval()
         correct = 0
