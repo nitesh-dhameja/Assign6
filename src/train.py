@@ -43,10 +43,9 @@ def train_model():
     
     # Data transformations
     transform = transforms.Compose([
-        transforms.RandomRotation(10),  # Rotate images randomly by ±10 degrees
-        transforms.RandomAffine(0, translate=(0.1, 0.1)),  # Random translation
+        transforms.RandomRotation((-7.0, 7.0), fill=(1,)),
         transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
+        transforms.Normalize((0.1307,), (0.3081,))
     ])
     
     # Load MNIST dataset
@@ -59,9 +58,9 @@ def train_model():
     logger.info(f"Number of testing samples: {len(test_dataset)}")
     
     # Adjust workers based on environment
-    num_workers = 0 if os.getenv('GITHUB_ACTIONS') else 2
+    num_workers = 4 #0 if os.getenv('GITHUB_ACTIONS') else 2
     
-    batch_size = 32
+    batch_size = 128
     train_loader = torch.utils.data.DataLoader(
         train_dataset, 
         batch_size=batch_size, 
@@ -78,8 +77,8 @@ def train_model():
     
     # Initialize model, optimizer, and loss function
     model = MNIST_CNN().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.001,momentum=0.9)
+    #criterion = nn.CrossEntropyLoss()
     
     param_count = count_parameters(model)
     logger.info(f"Model initialized with {param_count} parameters")
@@ -100,7 +99,7 @@ def train_model():
             data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = model(data)
-            loss = criterion(output, target)
+            loss = output, target
             loss.backward()
             optimizer.step()
             
@@ -134,7 +133,7 @@ def train_model():
             for data, target in test_pbar:
                 data, target = data.to(device), target.to(device)
                 output = model(data)
-                test_loss += criterion(output, target).item()
+                test_loss += (output, target).item()
                 pred = output.argmax(dim=1)
                 correct += pred.eq(target).sum().item()
                 total += target.size(0)
