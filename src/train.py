@@ -7,6 +7,7 @@ import datetime
 import os
 import logging
 from tqdm import tqdm
+from torchsummary import summary 
 
 def setup_logging():
     # Create logs directory if it doesn't exist
@@ -42,36 +43,39 @@ def train_model():
     logger.info(f"Using device: {device}")
     
     # Data transformations
-    transform = transforms.Compose([
+    Train_transform = transforms.Compose([
         transforms.RandomRotation((-7.0, 7.0), fill=(1,)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+
+    Test_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     
     # Load MNIST dataset
     logger.info("Loading MNIST dataset...")
-    train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST('./data', train=False, transform=transform)
+    train_dataset = datasets.MNIST('./data', train=True, download=True, transform=Train_transform)
+    test_dataset = datasets.MNIST('./data', train=False, transform=Test_transform)
     
     # Log the number of samples in the datasets
     logger.info(f"Number of training samples: {len(train_dataset)}")
     logger.info(f"Number of testing samples: {len(test_dataset)}")
     
     # Adjust workers based on environment
-    num_workers = 4 #0 if os.getenv('GITHUB_ACTIONS') else 2
+    #num_workers = 0 if os.getenv('GITHUB_ACTIONS') else 2
     
-    batch_size = 128
+    batch_size = 64
     train_loader = torch.utils.data.DataLoader(
         train_dataset, 
         batch_size=batch_size, 
-        shuffle=True,
-        num_workers=num_workers
+        shuffle=True
     )
     test_loader = torch.utils.data.DataLoader(
         test_dataset, 
         batch_size=batch_size,  # Use same batch size as training
-        shuffle=False,
-        num_workers=num_workers
+        shuffle=False
     )
     logger.info(f"Dataset loaded. Training samples: {len(train_dataset)}, Test samples: {len(test_dataset)}")
     
@@ -83,6 +87,7 @@ def train_model():
     param_count = count_parameters(model)
     logger.info(f"Model initialized with {param_count} parameters")
     logger.info(f"Model architecture:\n{model}")
+    logger.info(f"Model Summary:\n{summary(model, input_size=(1, 28, 28))}")
     
     # Training loop
     best_accuracy = 0

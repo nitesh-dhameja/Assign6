@@ -3,3 +3,4 @@ torchvision>=0.10.0
 pytest>=6.2.5
 numpy>=1.19.5
 tqdm>=4.65.0 
+torchsummary
