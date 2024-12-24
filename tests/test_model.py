@@ -26,3 +26,18 @@ def test_model_forward_pass():
         assert output.shape == (1, 10)
     except Exception as e:
         pytest.fail(f"Forward pass failed with error: {str(e)}") 
+
+def test_model_batch_normalization():
+    model = MNIST_CNN()
+    has_batch_norm = any(isinstance(layer, torch.nn.BatchNorm2d) for layer in model.children())
+    assert has_batch_norm, 'Model does not use Batch Normalization'
+
+def test_model_dropout():
+    model = MNIST_CNN()
+    has_dropout = any(isinstance(layer, torch.nn.Dropout) for layer in model.children())
+    assert has_dropout, 'Model does not use Dropout'
+
+def test_model_gap():
+    model = MNIST_CNN()
+    has_gap = any(isinstance(layer, torch.nn.AdaptiveAvgPool2d) for layer in model.children())
+    assert has_gap, 'Model does not use Global Average Pooling (GAP)' 
